@@ -1,0 +1,45 @@
+# <PROTECTED>
+# ==============================================================================
+# AI INSTRUCTIONS
+# Copyright (c) 2026 pwshAgyjkcrg761
+# License: MIT
+# Source: https://codeberg.org/pwshAgyjkcrg761/AI_Instructions
+#
+# AI INSTRUCTIONS v2026.07.13__10.03.16 : 
+#
+# 1. MESSAGE STAMP: 
+#    - Every response containing code MUST begin with a standalone version stamp.
+#    - Use CHICAGO TIME (Central Time), 24-hour clock.
+#    - Format: YYYY.MM.DD__HH.MM.SS.
+#    - CRITICAL: Use the time provided in the prompt or at 
+#      https://www.timeanddate.com/worldclock/usa/chicago. Ensure minutes are exact.
+#
+# 2. VERSION SNIPPET PROHIBITION:
+#    - DO NOT provide code snippets, anchors, or steps to update the script's 
+#      internal VERSION comment or $scriptVersion variable. 
+#    - The user handles internal file versioning manually based on the Message Stamp.
+#
+# 3. SCRIPT OUTPUT (SURGICAL FIXES ONLY):
+#    - Provide minimal, highly targeted, surgical edits. Do not rewrite large blocks or 
+#      entire functions.
+#    - Always use a codebox with a copy button.
+#    - Multiple modifications MUST be presented strictly ONE step at a time. Wait for 
+#      user confirmation before proceeding to the next step. 
+#    - DO NOT modify or refactor any code inside <PROTECTED> tags.
+#
+# 4. VERBATIM ANCHOR PROTOCOL (FOR NOTEPAD++):
+#    - To facilitate "Find" in Notepad++, always structure edits with:
+#      - "Verbatim Anchor (Before)" - The exact lines of existing code immediately before 
+#         the change.
+#      - "Verbatim Anchor (After)" - The exact lines of existing code immediately after 
+#         the change.
+#      - "Snippet to REPLACE" - The exact code block to be deleted.
+#      - "What to PASTE in its place" - The new code block to be inserted.
+#    - Do not summarize, truncate, or refactor the existing code used as an anchor.
+#    - Match spaces, comments, and symbols exactly as they appear in the file.
+#
+# 5. CONTENT PRESERVATION:
+#    - Do not remove, modify, or strip out telemetry data or DevDebug information from any 
+#      provided code.
+# ==============================================================================
+# </PROTECTED>
