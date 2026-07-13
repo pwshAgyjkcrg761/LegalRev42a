@@ -1,11 +1,11 @@
 # ==============================================================================
 # SCRIPT: LegalRev42a.py
-# VERSION: 2026.07.13__13.13.05
+# VERSION: 2026.07.13__15.33.37
 # TARGET: Python 3.14.5
 #
 # <LICENSE>
 # GNU General Public License Version 3
-# Copyright (C) 2026 dasfasdf
+# Copyright (C) 2026 pwshAgyjkcrg761
 # 
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -77,12 +77,14 @@ import traceback
 from PyQt6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, 
     QLabel, QLineEdit, QPushButton, QComboBox, QRadioButton, 
-    QButtonGroup, QProgressBar, QTextEdit, QFileDialog, QStyleFactory
+    QButtonGroup, QProgressBar, QTextEdit, QFileDialog, QStyleFactory,
+    QDialog, QTextBrowser
 )
 from PyQt6.QtCore import Qt, QThread, pyqtSignal
+from PyQt6.QtGui import QPalette, QColor
 
 # Easily maintainable application metadata configuration
-APP_VERSION = "2026.07.13__13.13.05"
+APP_VERSION = "2026.07.13__15.33.37"
 
 class UpdateWorker(QThread):
     progress_signal = pyqtSignal(int, str)
@@ -221,10 +223,248 @@ class UpdateWorker(QThread):
 class ModernLegalUpdater(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("LegalRev42a")
+        self.setWindowTitle(f"LegalRev42a v{APP_VERSION}")
         QApplication.setStyle(QStyleFactory.create("Fusion"))
+        self.init_menus()
         self.init_ui()
         self.read_settings()
+
+    def init_menus(self):
+        from PyQt6.QtGui import QAction, QActionGroup
+        menubar = self.menuBar()
+
+        # File Menu
+        file_menu = menubar.addMenu("File")
+        exit_action = QAction("Exit", self)
+        exit_action.triggered.connect(self.close)
+        file_menu.addAction(exit_action)
+
+        # Tools Menu
+        tools_menu = menubar.addMenu("Tools")
+        themes_menu = tools_menu.addMenu("Themes")
+        
+        self.theme_group = QActionGroup(self)
+        self.theme_group.setExclusive(True)
+        
+        themes = ["Dark", "Light", "System"]
+        for theme in themes:
+            action = themes_menu.addAction(theme)
+            action.setCheckable(True)
+            self.theme_group.addAction(action)
+            action.triggered.connect(lambda checked, t=theme: self.change_theme(t))
+
+        # Help Menu
+        help_menu = menubar.addMenu("Help")
+        manual_action = QAction("Manual", self)
+        about_action = QAction("About", self)
+        
+        def show_placeholder(title):
+            from PyQt6.QtWidgets import QMessageBox
+            msg = QMessageBox(self)
+            msg.setWindowTitle(title)
+            msg.setText(f"Placeholder text for {title}.")
+            msg.setWindowFlags(msg.windowFlags() | Qt.WindowType.CustomizeWindowHint)
+            msg.exec()
+
+        manual_action.triggered.connect(self.show_manual)
+        about_action.triggered.connect(self.show_about)
+
+        help_menu.addAction(manual_action)
+        help_menu.addAction(about_action)
+
+    def change_theme(self, theme_name):
+        self.current_theme = theme_name
+        self.apply_theme(theme_name)
+        
+    def apply_theme(self, theme_name):
+        app = QApplication.instance()
+        app.setStyle("Fusion")
+        palette = QPalette()
+        
+        if theme_name == "Dark":
+            palette.setColor(QPalette.ColorRole.Window, QColor("#1e1e1e"))
+            palette.setColor(QPalette.ColorRole.WindowText, QColor("#ffffff"))
+            palette.setColor(QPalette.ColorRole.Base, QColor("#2d2d2d"))
+            palette.setColor(QPalette.ColorRole.AlternateBase, QColor("#1e1e1e"))
+            palette.setColor(QPalette.ColorRole.ToolTipBase, QColor("#252526"))
+            palette.setColor(QPalette.ColorRole.ToolTipText, QColor("#ffffff"))
+            palette.setColor(QPalette.ColorRole.Text, QColor("#ffffff"))
+            palette.setColor(QPalette.ColorRole.Button, QColor("#333333"))
+            palette.setColor(QPalette.ColorRole.ButtonText, QColor("#ffffff"))
+            palette.setColor(QPalette.ColorRole.PlaceholderText, QColor("#aaaaaa"))
+            palette.setColor(QPalette.ColorRole.Highlight, QColor("#007acc"))
+            palette.setColor(QPalette.ColorRole.HighlightedText, QColor("#ffffff"))
+            palette.setColor(QPalette.ColorGroup.Disabled, QPalette.ColorRole.WindowText, QColor("#666666"))
+            palette.setColor(QPalette.ColorGroup.Disabled, QPalette.ColorRole.Text, QColor("#666666"))
+            palette.setColor(QPalette.ColorGroup.Disabled, QPalette.ColorRole.ButtonText, QColor("#666666"))
+            palette.setColor(QPalette.ColorGroup.Disabled, QPalette.ColorRole.Base, QColor("#1e1e1e"))
+            
+        elif theme_name == "Light":
+            palette.setColor(QPalette.ColorRole.Window, QColor("#f0f0f0"))
+            palette.setColor(QPalette.ColorRole.WindowText, QColor("#000000"))
+            palette.setColor(QPalette.ColorRole.Base, QColor("#ffffff"))
+            palette.setColor(QPalette.ColorRole.AlternateBase, QColor("#fcfcfc"))
+            palette.setColor(QPalette.ColorRole.ToolTipBase, QColor("#ffffff"))
+            palette.setColor(QPalette.ColorRole.ToolTipText, QColor("#000000"))
+            palette.setColor(QPalette.ColorRole.Text, QColor("#000000"))
+            palette.setColor(QPalette.ColorRole.Button, QColor("#e1e1e1"))
+            palette.setColor(QPalette.ColorRole.ButtonText, QColor("#000000"))
+            palette.setColor(QPalette.ColorRole.PlaceholderText, QColor("#777777"))
+            palette.setColor(QPalette.ColorRole.Highlight, QColor("#0078d7"))
+            palette.setColor(QPalette.ColorRole.HighlightedText, QColor("#ffffff"))
+            palette.setColor(QPalette.ColorGroup.Disabled, QPalette.ColorRole.WindowText, QColor("#a0a0a0"))
+            palette.setColor(QPalette.ColorGroup.Disabled, QPalette.ColorRole.Text, QColor("#a0a0a0"))
+            palette.setColor(QPalette.ColorGroup.Disabled, QPalette.ColorRole.ButtonText, QColor("#a0a0a0"))
+            palette.setColor(QPalette.ColorGroup.Disabled, QPalette.ColorRole.Base, QColor("#e1e1e1"))
+            
+        else: # System
+            is_dark = app.style().standardPalette().color(QPalette.ColorRole.Window).lightness() < 128
+            self.apply_theme("Dark" if is_dark else "Light")
+            return
+            
+        app.setPalette(palette)
+
+    def show_manual(self):
+        dialog = QDialog(self)
+        dialog.setWindowTitle("Manual")
+        dialog.resize(650, 550)
+        layout = QVBoxLayout(dialog)
+
+        text_browser = QTextBrowser()
+        text_browser.setOpenExternalLinks(True)
+        text_browser.setStyleSheet("""
+            QTextBrowser {
+                font-family: 'Segoe UI', 'Roboto', sans-serif;
+                font-size: 14px;
+                line-height: 1.6;
+                color: palette(text);
+                background-color: palette(base);
+                border: none;
+                padding: 20px;
+            }
+            h1 { color: #007acc; font-size: 22px; margin-bottom: 0px; }
+            h2 { color: #007acc; font-size: 18px; border-bottom: 1px solid #444; padding-bottom: 5px; margin-top: 25px; }
+            b { color: #007acc; }
+            .step-card {
+                background-color: rgba(0, 122, 204, 0.05);
+                border: 1px solid rgba(0, 122, 204, 0.2);
+                border-radius: 6px;
+                padding: 12px;
+                margin-bottom: 10px;
+            }
+            code { 
+                font-family: 'Consolas', monospace; 
+                background-color: rgba(128, 128, 128, 0.2); 
+                padding: 2px 5px; 
+                border-radius: 3px; 
+            }
+            a { color: #007acc; text-decoration: none; }
+        """)
+
+        manual_text = (
+            f"<h1>LegalRev42a v{APP_VERSION}</h1>"
+            f"<p style='margin-top: 0;'>MANUAL & USAGE GUIDE | Copyright (C) 2026 pwshAgyjkcrg761</p>"
+            f"<br>"
+            f"<h2>OVERVIEW</h2>"
+            f"<p>LegalRev42a is a workspace header standardization utility designed to securely parse, "
+            f"synchronize, and inject license frameworks and core AI operating instructions into targeted script architectures.</p>"
+            f"<h2>DEPENDENCIES</h2>"
+            f"<ul>"
+            f"<li><b>Python:</b> Built with Python 3.14.5.</li>"
+            f"<li><b>PyQt6:</b> Drives the presentation and thread-isolated asynchronous operations.</li>"
+            f"</ul>"
+            f"<h2>USAGE WORKFLOW</h2>"
+            f"<div class='step-card'><b>1. Identify Target Folder:</b> Select the path to the staging folder containing target scripts.</div>"
+            f"<div class='step-card'><b>2. Configure Metadata:</b> Input the optional Version Value, Licensee Name, and adjust the target Copyright Year.</div>"
+            f"<div class='step-card'><b>3. Download/Verify Core Instructions:</b> Refresh internal rule definitions directly against remote asset registries if an update is available.</div>"
+            f"<div class='step-card'><b>4. Execute Workflow:</b> Click 'Update Header'. Standardized assets are duplicated out safely to an isolated update directory.</div>"
+            f"<h2>CORE FEATURES</h2>"
+            f"<p><b>Asynchronous Thread Processing:</b> Long-running workspace iterations run isolated to prevent window stagnation or application lockups.</p>"
+            f"<h2>NOTES</h2>"
+            f"<ul>"
+            f"<li><b>Data Protection:</b> Modifying workspace targets directly is bypassed; safe duplicates are produced in a separate directory to prevent code regression or loss.</li>"
+            f"</ul>"
+            f"<hr><p style='text-align: center; color: #888888;'><small>Licensed under GNU GPLv3. See the <b>About</b> section for full legal details.</small></p>"
+        )
+
+        text_browser.setHtml(manual_text)
+        layout.addWidget(text_browser)
+
+        btn_close = QPushButton("Close")
+        btn_close.clicked.connect(dialog.accept)
+        layout.addWidget(btn_close, alignment=Qt.AlignmentFlag.AlignRight)
+
+        dialog.exec()
+
+    def show_about(self):
+        dialog = QDialog(self)
+        dialog.setWindowTitle("About")
+        dialog.resize(550, 420)
+        
+        layout = QVBoxLayout(dialog)
+        
+        text_browser = QTextBrowser()
+        text_browser.setOpenExternalLinks(True)
+        text_browser.setStyleSheet("""
+            QTextBrowser {
+                font-family: 'Segoe UI', 'Roboto', sans-serif;
+                font-size: 13px;
+                line-height: 1.5;
+                color: palette(text);
+                background-color: palette(base);
+                border: none;
+                padding: 10px;
+            }
+            h1 { color: #007acc; font-size: 20px; margin-bottom: 5px; }
+            b { color: #007acc; }
+            a { color: #007acc; text-decoration: none; }
+            hr { border: 0; border-top: 1px solid #444; margin: 10px 0; }
+        """)
+        
+        about_text = (
+            f"<h1>LegalRev42a v{APP_VERSION}</h1>"
+            "<p>Copyright (C) 2026 <b>pwshAgyjkcrg761</b><br>"
+            "Licensed under <b>GPLv3</b></p>"
+            "<p>This program is free software: you can redistribute it and/or modify "
+            "it under the terms of the GNU General Public License as published by "
+            "the Free Software Foundation, either version 3 of the License, or "
+            "(at your option) any later version.</p>"
+            "<p>This program is distributed in the hope that it will be useful, "
+            "but WITHOUT ANY WARRANTY; without even the implied warranty of "
+            "MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the "
+            "GNU General Public License for more details.</p>"
+            "<p>Official License: <a href=\"https://www.gnu.org/licenses/gpl-3.0.html\">gnu.org/licenses/gpl-3.0.html</a></p>"
+            "<hr>"
+            "<b>Icon Credits:</b><br>"
+            "'Contract Paper SVG Vector' by SVG Repo via <a href=\"https://www.svgrepo.com/svg/302069/contract-paper\">SVGRepo</a>.<br>"
+            "Used under CC0 License. Modified by pwshAgyjkcrg761."
+        )
+        text_browser.setHtml(about_text)
+        layout.addWidget(text_browser)
+        
+        from PyQt6.QtWidgets import QHBoxLayout
+        
+        script_dir = os.path.dirname(os.path.realpath(__file__))
+        license_folder = os.path.join(script_dir, "LegalRev42a_internal", "LegalRev42a_icon")
+        
+        def open_license_folder():
+            if os.path.exists(license_folder):
+                os.startfile(license_folder) if sys.platform == "win32" else os.system(f'xdg-open "{license_folder}"')
+        
+        button_layout = QHBoxLayout()
+        button_layout.addStretch()
+        
+        btn_ok = QPushButton("OK")
+        btn_ok.clicked.connect(dialog.accept)
+        button_layout.addWidget(btn_ok)
+        
+        btn_license = QPushButton("View Icon License")
+        btn_license.clicked.connect(open_license_folder)
+        button_layout.addWidget(btn_license)
+        
+        layout.addLayout(button_layout)
+        
+        dialog.exec()
 
     def read_settings(self):
         import json
@@ -236,6 +476,18 @@ class ModernLegalUpdater(QMainWindow):
             try:
                 with open(config_path, 'r', encoding='utf-8') as f:
                     settings = json.load(f)
+                if "theme" in settings:
+                    saved_theme = settings["theme"]
+                    for action in self.theme_group.actions():
+                        if action.text() == saved_theme:
+                            action.setChecked(True)
+                    self.apply_theme(saved_theme)
+                else:
+                    for action in self.theme_group.actions():
+                        if action.text() == "System":
+                            action.setChecked(True)
+                    self.apply_theme("System")
+
                 if "geometry" in settings:
                     from PyQt6.QtCore import QByteArray
                     self.restoreGeometry(QByteArray.fromHex(settings["geometry"].encode('utf-8')))
@@ -257,6 +509,11 @@ class ModernLegalUpdater(QMainWindow):
                 pass
 
         # Default first startup behavior: Center on screen without JSON
+        for action in self.theme_group.actions():
+            if action.text() == "System":
+                action.setChecked(True)
+        self.apply_theme("System")
+
         self.resize(750, 600)
         screen = QApplication.primaryScreen().availableGeometry()
         size = self.geometry()
@@ -273,8 +530,16 @@ class ModernLegalUpdater(QMainWindow):
         try:
             os.makedirs(config_dir, exist_ok=True)
             geom_hex = self.saveGeometry().toHex().data().decode('utf-8')
+            
+            # Find which theme action is currently checked
+            current_theme_setting = "System"
+            for action in self.theme_group.actions():
+                if action.isChecked():
+                    current_theme_setting = action.text()
+                    break
             settings = {
                 "geometry": geom_hex,
+                "theme": current_theme_setting,
                 "dir_input": self.dir_input.text().strip(),
                 "name_input": self.name_input.text().strip(),
                 "lic_combo": self.lic_combo.currentText(),
@@ -351,7 +616,7 @@ class ModernLegalUpdater(QMainWindow):
         # Column 3: Copyright Year (Fixed compact stretch)
         y_box = QVBoxLayout()
         y_box.addWidget(QLabel("<b>Copyright Year:</b>"))
-        self.year_input = QLineEdit("2026")
+        self.year_input = QLineEdit("")
         year_rx = QRegularExpression(r"^\d{4}$")
         self.year_input.setValidator(QRegularExpressionValidator(year_rx, self))
         self.year_input.setMaxLength(4)
