@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+// ==============================================================================
+// SCRIPT: <SCRIPT NAME HERE>
+// VERSION: 
+// TARGET: XML
+//
+// <LICENSE>
+// </LICENSE>
+// ==============================================================================
+// <AI>
+// </AI>
+-->
+
+<!--
+// Supported Extensions
+
+// XML Data & Schemas: .xml, .xsd, .xslt
+// Vector Graphics: .svg
+// UI Markup (WPF/MAUI/WinUI): .xaml
+// .NET Project Files: .csproj, .vbproj, .resx
+// Apple Property Lists: .plist
+-->
+
+<root>
+</root>
