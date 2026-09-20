@@ -1,6 +1,6 @@
 # ==============================================================================
 # SCRIPT: LegalRev42a.py
-# VERSION: 2026.07.13__15.33.37
+# VERSION: 2026.09.20__13.03.01
 # TARGET: Python 3.14.5
 #
 # <LICENSE>
@@ -27,9 +27,9 @@
 # AI INSTRUCTIONS
 # Copyright (c) 2026 pwshAgyjkcrg761
 # License: MIT
-# Source: https://codeberg.org/pwshAgyjkcrg761/AI_Instructions
+# Source: https://git.disroot.org/pwshAgyjkcrg761/AI_Instructions
 #
-# AI INSTRUCTIONS v2026.07.13__10.03.16 : 
+# AI INSTRUCTIONS v2026.09.01__04.25.09 : 
 #
 # 1. MESSAGE STAMP: 
 #    - Every response containing code MUST begin with a standalone version stamp.
@@ -81,10 +81,20 @@ from PyQt6.QtWidgets import (
     QDialog, QTextBrowser
 )
 from PyQt6.QtCore import Qt, QThread, pyqtSignal
-from PyQt6.QtGui import QPalette, QColor
+from PyQt6.QtGui import QPalette, QColor, QIcon
+import PyQt6.QtSvg
 
 # Easily maintainable application metadata configuration
-APP_VERSION = "2026.07.13__15.33.37"
+APP_VERSION = "2026.09.20__13.03.01"
+
+def get_resource_path(relative_path):
+    """Get absolute path to resource, works for dev and for PyInstaller / Auto Py to Exe bundles."""
+    try:
+        base_path = sys._MEIPASS
+    except AttributeError:
+        base_path = os.path.dirname(os.path.abspath(__file__))
+    return os.path.join(base_path, relative_path)
+
 
 class UpdateWorker(QThread):
     progress_signal = pyqtSignal(int, str)
@@ -115,21 +125,43 @@ class UpdateWorker(QThread):
             ai_content = self.get_payload(self.config['ai_mode'], self.config['ai_source'], 'ai_fallback')
 
             # 3. Process Target Assets (Respecting Recursive Setting)
+            supported_extensions = (
+                # Hash (#) syntax
+                '.py', '.pyw', '.ps1', '.psm1', '.psd1',
+                '.sh', '.bash', '.zsh', '.rb', '.r', '.R', '.pl', '.pm',
+                '.jl', '.nim', '.cr', '.ex', '.exs',
+                '.yaml', '.yml', '.toml', '.ini', '.cfg', '.conf', '.properties', '.env',
+                # Double slash (//) syntax & block-wrapped formats
+                '.js', '.mjs', '.cjs', '.jsx',
+                '.ts', '.mts', '.cts', '.tsx',
+                '.cs', '.cpp', '.cxx', '.cc', '.c', '.hpp', '.h',
+                '.java', '.kt', '.kts', '.go', '.rs', '.php', '.dart', '.swift',
+                '.groovy', '.scala', '.proto', '.sol',
+                '.html', '.htm', '.xhtml',
+                '.xml', '.svg', '.xaml', '.csproj', '.vbproj', '.plist', '.xsd', '.xslt', '.resx',
+                '.md', '.markdown',
+                '.css', '.scss', '.sass', '.less',
+                '.jsonc', '.json5',
+                '.sql', '.lua', '.hs', '.ada',
+                '.bat', '.cmd', '.vbs', '.vb', '.bas',
+                '.asm', '.ahk', '.au3'
+            )
+
             target_files = []
             if self.config.get('recursive', True):
                 for root, _, files in os.walk(dest_dir):
                     for file in files:
-                        if file.endswith(('.py', '.ps1')):
+                        if file.endswith(supported_extensions):
                             target_files.append(os.path.join(root, file))
             else:
                 # Non-recursive: only scan the immediate folder root files
                 for file in os.listdir(dest_dir):
                     file_path = os.path.join(dest_dir, file)
-                    if os.path.isfile(file_path) and file.endswith(('.py', '.ps1')):
+                    if os.path.isfile(file_path) and file.endswith(supported_extensions):
                         target_files.append(file_path)
 
             if not target_files:
-                self.finished_signal.emit(True, "Process completed. No editable .py or .ps1 files discovered.")
+                self.finished_signal.emit(True, "Process completed. No editable target script files discovered.")
                 return
 
             for index, file_path in enumerate(target_files):
@@ -178,43 +210,67 @@ class UpdateWorker(QThread):
 
         import re
         modified = False
+
+        slash_exts = (
+            '.js', '.mjs', '.cjs', '.jsx',
+            '.ts', '.mts', '.cts', '.tsx',
+            '.cs', '.cpp', '.cxx', '.cc', '.c', '.hpp', '.h',
+            '.java', '.kt', '.kts', '.go', '.rs', '.php', '.dart', '.swift',
+            '.groovy', '.scala', '.proto', '.sol',
+            '.html', '.htm', '.xhtml',
+            '.xml', '.svg', '.xaml', '.csproj', '.vbproj', '.plist', '.xsd', '.xslt', '.resx',
+            '.md', '.markdown',
+            '.css', '.scss', '.sass', '.less',
+            '.jsonc', '.json5',
+            '.sql', '.lua', '.hs', '.ada',
+            '.bat', '.cmd', '.vbs', '.vb', '.bas',
+            '.asm', '.ahk', '.au3'
+        )
+
+        is_slash = file_path.lower().endswith(slash_exts)
+        cmt = "//" if is_slash else "#"
         
         if self.config['update_version'] and self.config['version_value']:
-            # Targets both Python/Powershell comments (# VERSION:) and standard block formats
             new_ver = self.config['version_value']
-            
-            # Pattern matching # VERSION: followed by anything up to the end of the line
-            content, count = re.subn(r'(#\s*VERSION:\s*).*', rf'\g<1>{new_ver}', content)
+            pattern = rf'{re.escape(cmt)}[ \t]*VERSION:.*'
+            content, count = re.subn(pattern, f'{cmt} VERSION: {new_ver}', content)
             if count > 0:
                 modified = True
         
-        # Injection Mechanism: Content Blocks wrapped cleanly inside comment tags
-        if self.config['update_license'] and "# <LICENSE>" in content and "# </LICENSE>" in content:
-            content = self.replace_tagged_block(content, "# <LICENSE>", "# </LICENSE>", license_text)
+        lic_start = f"{cmt} <LICENSE>"
+        lic_end = f"{cmt} </LICENSE>"
+        if self.config['update_license'] and lic_start in content and lic_end in content:
+            content = self.replace_tagged_block(content, lic_start, lic_end, license_text, cmt)
             modified = True
 
-        if self.config['update_ai'] and "# <AI>" in content and "# </AI>" in content:
-            content = self.replace_tagged_block(content, "# <AI>", "# </AI>", ai_text)
+        ai_start = f"{cmt} <AI>"
+        ai_end = f"{cmt} </AI>"
+        if self.config['update_ai'] and ai_start in content and ai_end in content:
+            content = self.replace_tagged_block(content, ai_start, ai_end, ai_text, cmt)
             modified = True
 
         if modified:
             with open(file_path, 'w', encoding='utf-8', newline='') as f:
                 f.write(content)
 
-    def replace_tagged_block(self, full_text, start_tag, end_tag, new_block):
+    def replace_tagged_block(self, full_text, start_tag, end_tag, new_block, cmt_prefix="#"):
         start_idx = full_text.find(start_tag) + len(start_tag)
         end_idx = full_text.find(end_tag)
         
-        # Formulate and normalize lines with clean # character comment indentation
+        # Formulate and normalize lines with appropriate comment prefix (# or //)
         raw_lines = new_block.strip().splitlines()
         formatted_lines = []
         for line in raw_lines:
+            line_content = line
+            if line_content.startswith("//"):
+                line_content = line_content[2:].lstrip()
+            elif line_content.startswith("#"):
+                line_content = line_content[1:].lstrip()
+
             if line.strip() == "":
-                formatted_lines.append("#")
-            elif line.startswith("#"):
-                formatted_lines.append(line)
+                formatted_lines.append(cmt_prefix)
             else:
-                formatted_lines.append(f"# {line}")
+                formatted_lines.append(f"{cmt_prefix} {line_content}" if line_content else cmt_prefix)
                 
         payload_string = "\n" + "\n".join(formatted_lines) + "\n"
         return full_text[:start_idx] + payload_string + full_text[end_idx:]
@@ -225,9 +281,23 @@ class ModernLegalUpdater(QMainWindow):
         super().__init__()
         self.setWindowTitle(f"LegalRev42a v{APP_VERSION}")
         QApplication.setStyle(QStyleFactory.create("Fusion"))
+        self.init_icon()
         self.init_menus()
         self.init_ui()
         self.read_settings()
+
+    def init_icon(self):
+        for subfolder in ["icons", "LegalRev42a_icon"]:
+            icon_dir = get_resource_path(os.path.join("LegalRev42a_internal", subfolder))
+            if os.path.exists(icon_dir):
+                for item in sorted(os.listdir(icon_dir)):
+                    if item.lower().endswith((".svg", ".ico")):
+                        icon_path = os.path.join(icon_dir, item)
+                        app_icon = QIcon(icon_path)
+                        if not app_icon.isNull():
+                            self.setWindowIcon(app_icon)
+                            QApplication.setWindowIcon(app_icon)
+                            return
 
     def init_menus(self):
         from PyQt6.QtGui import QAction, QActionGroup
@@ -367,22 +437,26 @@ class ModernLegalUpdater(QMainWindow):
             f"<br>"
             f"<h2>OVERVIEW</h2>"
             f"<p>LegalRev42a is a workspace header standardization utility designed to securely parse, "
-            f"synchronize, and inject license frameworks and core AI operating instructions into targeted script architectures.</p>"
-            f"<h2>DEPENDENCIES</h2>"
+            f"synchronize, and inject license frameworks and core AI operating instructions into targeted script architectures across multiple programming and markup languages.</p>"
+            f"<h2>STARTER TEMPLATES</h2>"
+            f"<p>Pre-configured starter templates are located in the <code>templates</code> directory next to the application:</p>"
             f"<ul>"
-            f"<li><b>Python:</b> Built with Python 3.14.5.</li>"
-            f"<li><b>PyQt6:</b> Drives the presentation and thread-isolated asynchronous operations.</li>"
+            f"<li><code>template-py-#.py</code> &mdash; Standard hash (<code>#</code>) comment syntax for Python, PowerShell, Bash, Ruby, Perl, R, Julia, YAML, TOML, and INI configuration files.</li>"
+            f"<li><code>template-js-double-forward-slash.js</code> &mdash; Standard double slash (<code>//</code>) comment syntax for JavaScript, TypeScript, C, C++, C#, Java, Go, Rust, PHP, Dart, and Swift.</li>"
+            f"<li><code>template-html-less-than-!--.html</code> &mdash; Block comment wrapper (<code>&lt;!-- // ... --&gt;</code>) for HTML documents and Markdown.</li>"
+            f"<li><code>template-xml--less-than-!--.xml</code> &mdash; XML prolog template (<code>&lt;?xml ... ?&gt;</code> + <code>&lt;!-- // ... --&gt;</code>) for XML, SVG, XAML, and .NET project files.</li>"
+            f"<li><code>template-css-forward-slash-star.css</code> &mdash; C-style block comment wrapper (<code>/* // ... */</code>) for CSS stylesheets and SQL scripts.</li>"
             f"</ul>"
             f"<h2>USAGE WORKFLOW</h2>"
-            f"<div class='step-card'><b>1. Identify Target Folder:</b> Select the path to the staging folder containing target scripts.</div>"
-            f"<div class='step-card'><b>2. Configure Metadata:</b> Input the optional Version Value, Licensee Name, and adjust the target Copyright Year.</div>"
+            f"<div class='step-card'><b>1. Identify Target Folder:</b> Select the staging folder containing your project files.</div>"
+            f"<div class='step-card'><b>2. Configure Metadata:</b> Input the Version Number, Licensee Name, and adjust the Copyright Year.</div>"
             f"<div class='step-card'><b>3. Download/Verify Core Instructions:</b> Refresh internal rule definitions directly against remote asset registries if an update is available.</div>"
-            f"<div class='step-card'><b>4. Execute Workflow:</b> Click 'Update Header'. Standardized assets are duplicated out safely to an isolated update directory.</div>"
-            f"<h2>CORE FEATURES</h2>"
-            f"<p><b>Asynchronous Thread Processing:</b> Long-running workspace iterations run isolated to prevent window stagnation or application lockups.</p>"
-            f"<h2>NOTES</h2>"
+            f"<div class='step-card'><b>4. Execute Workflow:</b> Click 'Update Header'. Standardized assets are duplicated safely to an isolated <code>_update-LegalRev42a</code> output directory.</div>"
+            f"<h2>CORE FEATURES & SAFETY</h2>"
             f"<ul>"
-            f"<li><b>Data Protection:</b> Modifying workspace targets directly is bypassed; safe duplicates are produced in a separate directory to prevent code regression or loss.</li>"
+            f"<li><b>Zero Destructive Writes:</b> Target files are never modified in-place; a safe duplicate folder is always produced.</li>"
+            f"<li><b>Multi-Syntax Engine:</b> Automatically recognizes hash comments (<code>#</code>), slash comments (<code>//</code>), and block-wrapped markup.</li>"
+            f"<li><b>Asynchronous Processing:</b> Background threading keeps the interface responsive during large recursive workspace operations.</li>"
             f"</ul>"
             f"<hr><p style='text-align: center; color: #888888;'><small>Licensed under GNU GPLv3. See the <b>About</b> section for full legal details.</small></p>"
         )
@@ -437,15 +511,16 @@ class ModernLegalUpdater(QMainWindow):
             "<hr>"
             "<b>Icon Credits:</b><br>"
             "'Contract Paper SVG Vector' by SVG Repo via <a href=\"https://www.svgrepo.com/svg/302069/contract-paper\">SVGRepo</a>.<br>"
-            "Used under CC0 License. Modified by pwshAgyjkcrg761."
+            "Used under <a href=\"https://creativecommons.org/publicdomain/zero/1.0/\">CC0 License</a>. Modified by pwshAgyjkcrg761."
         )
         text_browser.setHtml(about_text)
         layout.addWidget(text_browser)
         
         from PyQt6.QtWidgets import QHBoxLayout
         
-        script_dir = os.path.dirname(os.path.realpath(__file__))
-        license_folder = os.path.join(script_dir, "LegalRev42a_internal", "LegalRev42a_icon")
+        license_folder = get_resource_path(os.path.join("LegalRev42a_internal", "icons"))
+        if not os.path.exists(license_folder):
+            license_folder = get_resource_path(os.path.join("LegalRev42a_internal", "LegalRev42a_icon"))
         
         def open_license_folder():
             if os.path.exists(license_folder):
@@ -468,7 +543,7 @@ class ModernLegalUpdater(QMainWindow):
 
     def read_settings(self):
         import json
-        script_dir = os.path.dirname(os.path.abspath(__file__))
+        script_dir = os.path.dirname(sys.executable) if getattr(sys, 'frozen', False) else os.path.dirname(os.path.abspath(__file__))
         config_dir = os.path.join(script_dir, "LegalRev42a_internal")
         config_path = os.path.join(config_dir, "LegalRev42a.config.json")
         
@@ -523,7 +598,7 @@ class ModernLegalUpdater(QMainWindow):
 
     def closeEvent(self, event):
         import json
-        script_dir = os.path.dirname(os.path.abspath(__file__))
+        script_dir = os.path.dirname(sys.executable) if getattr(sys, 'frozen', False) else os.path.dirname(os.path.abspath(__file__))
         config_dir = os.path.join(script_dir, "LegalRev42a_internal")
         config_path = os.path.join(config_dir, "LegalRev42a.config.json")
         
@@ -701,13 +776,11 @@ class ModernLegalUpdater(QMainWindow):
     def download_repository_updates(self):
         self.log_output.clear()
         self.log_output.append("Initiating repository asset update...")
-        base_script_dir = os.path.dirname(os.path.abspath(__file__))
-        
         import re
         from PyQt6.QtWidgets import QMessageBox
 
-        url_instructions = "https://codeberg.org/pwshAgyjkcrg761/AI_Instructions/raw/branch/main/AI_Instructions.txt"
-        local_dest = os.path.join(base_script_dir, "LegalRev42a_internal", "ai_instructions", "AI_Instructions.txt")
+        url_instructions = "https://git.disroot.org/pwshAgyjkcrg761/LegalRev42a/raw/branch/main/LegalRev42a_internal/ai_instructions/AI_Instructions.txt"
+        local_dest = get_resource_path(os.path.join("LegalRev42a_internal", "ai_instructions", "AI_Instructions.txt"))
 
         local_version = None
         if os.path.exists(local_dest):
@@ -803,8 +876,7 @@ class ModernLegalUpdater(QMainWindow):
         self.progress_bar.setValue(0)
         self.log_output.clear()
 
-        base_script_dir = os.path.dirname(os.path.abspath(__file__))
-        resolved_license_path = os.path.join(base_script_dir, self.lic_source_input.text().strip())
+        resolved_license_path = get_resource_path(self.lic_source_input.text().strip())
 
         config = {
             'src_dir': src,
@@ -816,8 +888,7 @@ class ModernLegalUpdater(QMainWindow):
             'license_source': os.path.abspath(resolved_license_path),
             'license_fallback': os.path.abspath(resolved_license_path),
             'ai_mode': 'file',
-            'ai_source': os.path.join(base_script_dir, "LegalRev42a_internal", "ai_instructions", "AI_Instructions.txt"),
-            'ai_fallback': os.path.join(base_script_dir, "LegalRev42a_internal", "instructions_fallback.txt"),
+            'ai_source': get_resource_path(os.path.join("LegalRev42a_internal", "ai_instructions", "AI_Instructions.txt")),
             'user_name': self.name_input.text().strip(),
             'copyright_year': self.year_input.text().strip(),
             'recursive': self.recursive_chk.isChecked()
@@ -846,6 +917,11 @@ class ModernLegalUpdater(QMainWindow):
             self.log_output.append(f"\n[FAILURE] Run halted: {summary}")
 
 if __name__ == "__main__":
+    import ctypes
+    try:
+        ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID("pwshAgyjkcrg761.LegalRev42a.App")
+    except Exception:
+        pass
     app = QApplication(sys.argv)
     window = ModernLegalUpdater()
     window.show()
