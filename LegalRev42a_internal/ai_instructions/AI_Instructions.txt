@@ -3,9 +3,9 @@
 # AI INSTRUCTIONS
 # Copyright (c) 2026 pwshAgyjkcrg761
 # License: MIT
-# Source: https://codeberg.org/pwshAgyjkcrg761/AI_Instructions
+# Source: https://git.disroot.org/pwshAgyjkcrg761/AI_Instructions
 #
-# AI INSTRUCTIONS v2026.07.13__10.03.16 : 
+# AI INSTRUCTIONS v2026.09.01__04.25.09 : 
 #
 # 1. MESSAGE STAMP: 
 #    - Every response containing code MUST begin with a standalone version stamp.
